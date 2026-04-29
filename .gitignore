@@ -1,0 +1,21 @@
+# Generated output
+output/
+
+# User content (project-specific)
+input/images/
+input/se/
+input/script.csv
+input/台本_Voice.csv
+
+# Completed project files in root
+*.ymmp
+!input/template.ymmp
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+Thumbs.db
