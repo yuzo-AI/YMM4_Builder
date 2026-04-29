@@ -19,3 +19,6 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# 環境変数（APIキーを含むため絶対にコミットしない）
+.env
