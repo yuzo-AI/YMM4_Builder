@@ -17,7 +17,7 @@ AUDIO_QUERY_TYPE = "YukkuriMovieMaker.Voice.VOICEVOXAudioQuery, YukkuriMovieMake
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 TEMPLATE_PATH = BASE_DIR / "input" / "template.ymmp"
-SCRIPT_PATH = BASE_DIR / "input" / "script.csv"
+SCRIPT_PATH = BASE_DIR / "input" / "台本_Voice.csv"
 IMAGES_DIR = BASE_DIR / "input" / "images"
 SE_DIR = BASE_DIR / "input" / "se"
 OUTPUT_PATH = BASE_DIR / "output" / "project.ymmp"
@@ -125,6 +125,17 @@ def _calc_length(row: dict, synth_frames: int | None = None, fps: int = 60) -> i
     return max(1, len(row["dialogue"])) * DEFAULT_FRAMES_PER_CHAR
 
 
+def _rename_images_sequential(images_dir: Path) -> None:
+    """アルファベット順にソートして 01.png, 02.png ... にリネームする。"""
+    exts = {".png", ".jpg", ".jpeg", ".webp"}
+    files = sorted(f for f in images_dir.iterdir() if f.suffix.lower() in exts)
+    for i, f in enumerate(files, start=1):
+        new_name = f"{i:02d}{f.suffix.lower()}"
+        if f.name != new_name:
+            f.rename(f.parent / new_name)
+            print(f"[INFO] リネーム: {f.name} → {new_name}")
+
+
 def build(
     template_path: Path = TEMPLATE_PATH,
     script_path: Path = SCRIPT_PATH,
@@ -132,6 +143,9 @@ def build(
     se_dir: Path = SE_DIR,
     output_path: Path = OUTPUT_PATH,
 ) -> None:
+    # ---- Rename images to sequential names ----
+    _rename_images_sequential(images_dir)
+
     # ---- Load config ----
     config = _load_config()
     silence_cfg = config.get("silence", {})
@@ -155,9 +169,36 @@ def build(
 
     # ---- Load CSV ----
     with script_path.open(encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
+        raw = list(csv.reader(f))
 
-    assert len(rows) > 0, "script.csv が空です"
+    assert len(raw) > 0, "CSVが空です"
+
+    # ヘッダーありなら DictReader 相当、なければ character/dialogue の2列として扱う
+    if raw[0][0] in ("id", "character"):
+        with script_path.open(encoding="utf-8-sig") as f:
+            rows = list(csv.DictReader(f))
+    else:
+        exts = {".png", ".jpg", ".jpeg", ".webp"}
+        img_files = sorted(
+            f.name for f in images_dir.iterdir()
+            if f.suffix.lower() in exts
+        )
+        assert len(img_files) >= len(raw), (
+            f"画像ファイル数({len(img_files)})がカット数({len(raw)})より少ないです"
+        )
+        rows = [
+            {
+                "id": f"{i+1:02d}",
+                "character": r[0],
+                "dialogue": r[1] if len(r) > 1 else "",
+                "image": img_files[i],
+                "se": "",
+                "length_frames": "",
+            }
+            for i, r in enumerate(raw)
+        ]
+
+    assert len(rows) > 0, "CSVが空です"
 
     # ---- Build character map (name → Character entry) ----
     char_map = {c["Name"]: c for c in data.get("Characters", [])}
