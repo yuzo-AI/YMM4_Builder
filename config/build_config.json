@@ -1,0 +1,15 @@
+{
+  "_comment": "無音・音声設定。変更後は python src/run.py を再実行してください。",
+
+  "silence": {
+    "pre_phoneme_length": 0.0,
+    "post_phoneme_length": 0.2,
+    "pause_length": 0.0,
+    "pause_length_scale": 0.0,
+    "padding_frames": 0
+  },
+
+  "voice": {
+    "speed_override": null
+  }
+}
